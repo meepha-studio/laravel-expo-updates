@@ -20,7 +20,7 @@ backend becomes the control plane for fast, reliable updates.
 `expo-updates` is a React Native library that enables your app to manage remote updates to your application code.
 It communicates with the configured remote update service to get information about available updates.
 
-`Laravel Expo Updates` is designed to be a PHP implementation of the [Expo Updates protocol](https://docs.expo.dev/technical-specs/expo-updates/),
+`Laravel Expo Updates` is designed to be a PHP implementation of the [Expo Updates protocol](https://docs.expo.dev/technical-specs/expo-updates-1/),
 making it compatible with any React Native app using the `expo-updates` library. If you write your app's backend in PHP,
 this package lets you keep everything in one stack.
 
