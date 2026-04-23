@@ -1,5 +1,5 @@
 {
-    "name": "laravel-expo-updates",
+    "name": "timgws/laravel-expo-updates",
     "description": "Laravel package for handling Expo Updates protocol",
     "type": "library",
     "license": "MIT",
