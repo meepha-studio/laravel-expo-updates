@@ -97,7 +97,7 @@ class UploadControllerTest extends TestCase
             ->assertJson(['message' => 'Update uploaded successfully']);
 
         // Verify manifest was created
-        $this->assertDatabaseHas('manifests', [
+        $this->assertDatabaseHas('expo_manifests', [
             'project_id' => $this->project->id,
             'platform' => 'ios',
             'runtime_version' => '1.0.0',
@@ -105,7 +105,7 @@ class UploadControllerTest extends TestCase
             'metadata->commitMessage' => 'Test commit'
         ]);
 
-        $this->assertDatabaseHas('manifests', [
+        $this->assertDatabaseHas('expo_manifests', [
             'project_id' => $this->project->id,
             'platform' => 'android',
             'runtime_version' => '1.0.0',
@@ -114,7 +114,7 @@ class UploadControllerTest extends TestCase
         ]);
 
         // Verify assets were created
-        $this->assertDatabaseHas('assets', [
+        $this->assertDatabaseHas('expo_assets', [
             'key' => 'test.js',
             'content_type' => 'application/javascript'
         ]);
