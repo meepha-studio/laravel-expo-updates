@@ -23,6 +23,8 @@ return [
     */
     'default_project' => env('EXPO_UPDATES_DEFAULT_PROJECT', 'default'),
 
+    'upload_token' => env('EXPO_UPDATES_UPLOAD_TOKEN', 'KEEP_IT_SECRET_KEEP_IT_SAFE'),
+
     /*
     |--------------------------------------------------------------------------
     | Code Signing

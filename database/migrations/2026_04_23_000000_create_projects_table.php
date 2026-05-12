@@ -61,7 +61,9 @@ return new class extends Migration
 
         Schema::create('expo_update_stats', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('project_id')->constrained()->cascadeOnDelete();
+
+            $table->uuid('project_id');
+
             $table->string('platform');
             $table->string('runtime_version');
             // 'request' or 'upgrade'
@@ -69,6 +71,11 @@ return new class extends Migration
             $table->integer('count')->default(1);
             $table->date('date');
             $table->timestamps();
+
+            $table->foreign('project_id')
+                ->references('id')
+                ->on('expo_projects')
+                ->cascadeOnDelete();
 
             // Ensure we only have one stat per project/platform/version/type/date
             $table->unique(['project_id', 'platform', 'runtime_version', 'type', 'date']);
