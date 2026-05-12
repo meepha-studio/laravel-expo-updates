@@ -43,6 +43,20 @@ class ExpoUpdatesController extends Controller
             return response()->json(['error' => 'Project not found'], 404);
         }
 
+        $contentType = $request->prefers([
+            'application/expo+json',
+            'application/json',
+            'multipart/mixed',
+        ]);
+
+        if ($contentType === 'multipart/mixed') {
+            return response()->json(['error' => 'Multipart responses are not implemented'], 406);
+        }
+
+        if (!$contentType) {
+            return response()->json(['error' => 'Unsupported response content type'], 406);
+        }
+
         $platform = $request->header('expo-platform');
         $runtimeVersion = $request->header('expo-runtime-version');
         $manifestFilters = $this->parseManifestFilters($request->header('expo-manifest-filters'));
@@ -50,10 +64,16 @@ class ExpoUpdatesController extends Controller
         $manifest = $this->manifestService->getLatestManifest($project, $platform, $runtimeVersion, $manifestFilters);
 
         if (!$manifest) {
-            return response()->json(['error' => 'No update available'], 204);
+            // No update available, return 204 No Content with appropriate headers
+            return response('', 204)
+                ->header('expo-protocol-version', '1')
+                ->header('expo-sfv-version', '0')
+                ->header('cache-control', 'private, max-age=0');
         }
 
-        $response = response()->json($manifest);
+        $response = response()->json($manifest, 200, [
+            'content-type' => $contentType,
+        ]);
 
         // Add required headers
         $response->header('expo-protocol-version', '1');

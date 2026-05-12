@@ -52,7 +52,9 @@ class ManifestService
             'createdAt' => $manifest->created_at->toIso8601String(),
             'runtimeVersion' => $manifest->runtime_version,
             'launchAsset' => $this->formatAsset($manifest->launchAsset),
-            'assets' => $manifest->assets->map(fn ($asset) => $this->formatAsset($asset))->toArray(),
+            'assets' => $manifest->assets->map(
+                fn ($asset) => $this->formatAsset($asset)
+            )->toArray(),
             'metadata' => $manifest->metadata,
             'extra' => $manifest->extra,
         ];

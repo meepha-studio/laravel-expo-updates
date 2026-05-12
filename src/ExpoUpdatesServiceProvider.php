@@ -9,6 +9,7 @@ use LaravelExpoUpdates\Contracts\ProjectInterface;
 use LaravelExpoUpdates\Contracts\UpdateStatInterface;
 use LaravelExpoUpdates\Http\Controllers\ExpoUpdatesController;
 use LaravelExpoUpdates\Http\Controllers\UploadController;
+use LaravelExpoUpdates\Http\Middleware\AuthenticateExpoUploadRequest;
 use LaravelExpoUpdates\Http\Middleware\TrackUpdateRequests;
 use LaravelExpoUpdates\Http\Middleware\ValidateExpoRequest;
 use LaravelExpoUpdates\Services\AssetService;
@@ -72,6 +73,7 @@ class ExpoUpdatesServiceProvider extends ServiceProvider
 
         $this->app['router']->aliasMiddleware('expo.validate', ValidateExpoRequest::class);
         $this->app['router']->aliasMiddleware('expo.track', TrackUpdateRequests::class);
+        $this->app['router']->aliasMiddleware('expo.upload-auth', AuthenticateExpoUploadRequest::class);
 
         $prefix = config('expo-updates.route_prefix');
 
@@ -85,7 +87,8 @@ class ExpoUpdatesServiceProvider extends ServiceProvider
         $this->app['router']->group(['prefix' => $prefix, 'middleware' => ['expo.validate', 'expo.track']], function ($router) {
             $router->get('manifest', [ExpoUpdatesController::class, 'manifest']);
             $router->get('asset/{assetKey}', [ExpoUpdatesController::class, 'asset']);
-            $router->post('upload', [UploadController::class, 'upload']);
+            $router->post('upload', [UploadController::class, 'upload'])
+                ->middleware('expo.upload-auth');
         });
     }
 } 

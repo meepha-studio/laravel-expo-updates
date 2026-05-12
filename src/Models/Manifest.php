@@ -5,6 +5,7 @@ namespace LaravelExpoUpdates\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use LaravelExpoUpdates\Contracts\ManifestInterface;
 
 /**
@@ -25,6 +26,12 @@ use LaravelExpoUpdates\Contracts\ManifestInterface;
  */
 class Manifest extends Model implements ManifestInterface
 {
+    use HasUuids;
+
+    protected $table = 'expo_manifests';
+    public $incrementing = false;
+    protected $keyType = 'string';
+
     protected $fillable = [
         'project_id',
         'platform',

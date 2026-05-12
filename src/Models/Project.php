@@ -4,6 +4,7 @@ namespace LaravelExpoUpdates\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use LaravelExpoUpdates\Contracts\ProjectInterface;
 
 /**
@@ -18,9 +19,16 @@ use LaravelExpoUpdates\Contracts\ProjectInterface;
  */
 class Project extends Model implements ProjectInterface
 {
+    use HasUuids;
+
+    protected $table = 'expo_projects';
+    public $incrementing = false;
+    protected $keyType = 'string';
+
     protected $fillable = [
         'name',
         'slug',
+        'config',
         'server_headers',
         'asset_headers',
     ];
@@ -57,11 +65,11 @@ class Project extends Model implements ProjectInterface
 
     public function getServerHeaders(): array
     {
-        return $this->server_headers ?? [];
+        return $this->config['server_headers'] ?? [];
     }
 
     public function getAssetHeaders(): array
     {
-        return $this->asset_headers ?? [];
+        return $this->config['asset_headers'] ?? [];
     }
 } 

@@ -39,11 +39,11 @@ class UploadController extends Controller
     public function upload(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|mimes:zip',
-            'runtimeVersion' => 'required|string',
-            'commitHash' => 'required|string',
-            'commitMessage' => 'required|string',
-            'projectSlug' => 'required|string',
+            'file' => 'required|file|mimes:zip|max:512000',
+            'runtimeVersion' => 'required|string|max:255',
+            'commitHash' => 'required|string|max:128',
+            'commitMessage' => 'required|string|max:1000',
+            'projectSlug' => 'required|string|exists:expo_projects,slug',
         ]);
 
         $project = Project::where('slug', $request->projectSlug)->first();

@@ -4,6 +4,7 @@ namespace LaravelExpoUpdates\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use LaravelExpoUpdates\Contracts\AssetInterface;
 
 /**
@@ -25,7 +26,11 @@ use LaravelExpoUpdates\Contracts\AssetInterface;
  */
 class Asset extends Model implements AssetInterface
 {
+    use HasUuids;
+
     protected $table = 'expo_assets';
+    public $incrementing = false;
+    protected $keyType = 'string';
 
     protected $fillable = [
         'manifest_id',

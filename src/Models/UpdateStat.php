@@ -11,6 +11,10 @@ use LaravelExpoUpdates\Contracts\UpdateStatInterface;
  */
 class UpdateStat extends Model implements UpdateStatInterface
 {
+    protected $table = 'expo_update_stats';
+    public $incrementing = false;
+    protected $keyType = 'string';
+
     /**
      * The attributes that are mass assignable.
      *

@@ -10,6 +10,11 @@ class ValidateExpoRequest
 {
     public function handle(Request $request, Closure $next): Response
     {
+        // Only validate GET requests to the manifest endpoint
+        if (!$request->isMethod('GET')) {
+            return $next($request);
+        }
+
         // Validate protocol version
         if ($request->header('expo-protocol-version') !== '1') {
             return response()->json(['error' => 'Unsupported protocol version'], 406);
