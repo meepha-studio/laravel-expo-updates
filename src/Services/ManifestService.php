@@ -165,9 +165,8 @@ class ManifestService
             $formatted['hash'] = rtrim($base64UrlHash, '=');
         }
 
-        if ($asset->file_extension) {
-            $formatted['fileExtension'] = $asset->file_extension;
-        }
+        // Always include fileExtension (required by iOS client)
+        $formatted['fileExtension'] = $asset->file_extension ?? '';
 
         return $formatted;
     }
