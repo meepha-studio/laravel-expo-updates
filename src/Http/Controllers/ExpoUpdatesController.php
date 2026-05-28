@@ -110,6 +110,37 @@ class ExpoUpdatesController extends Controller
                 $assets = array_merge($assets, $manifest['assets']);
             }
 
+            // Filter out platform-specific bundles that don't match current platform
+            // We need to check the actual file path, not the flat key
+            $manifestId = $manifest['id'] ?? null;
+            $assets = array_filter($assets, function($asset) use ($platform, $manifestId) {
+                // Fetch asset model to get original path
+                $assetModel = \LaravelExpoUpdates\Models\Asset::where('manifest_id', $manifestId)
+                    ->where('key', $asset['key'] ?? null)
+                    ->first();
+                
+                if (!$assetModel) {
+                    return false; // Asset not found, exclude
+                }
+                
+                // Check if it's a platform-specific JS bundle using the stored path
+                if (preg_match('#_expo/static/js/(ios|android|web)/#', $assetModel->path, $matches)) {
+                    $assetPlatform = $matches[1];
+                    // Only include if it matches the requested platform
+                    return $assetPlatform === $platform;
+                }
+                
+                // Include all other assets (shared resources like images, fonts)
+                return true;
+            });
+
+            \Illuminate\Support\Facades\Log::info('Serving assets in multipart response', [
+                'manifest_id' => $manifest['id'] ?? 'unknown',
+                'platform' => $platform,
+                'total_assets' => count($assets),
+                'asset_keys' => array_map(fn($a) => $a['key'] ?? 'unknown', $assets)
+            ]);
+
             foreach ($assets as $asset) {
                 // Fetch full asset model to get storage path
                 $assetModel = \LaravelExpoUpdates\Models\Asset::where('key', $asset['key'] ?? null)
@@ -117,13 +148,29 @@ class ExpoUpdatesController extends Controller
                     ->first();
                 $assetPath = $assetModel ? \Illuminate\Support\Facades\Storage::disk(config('expo-updates.assets.disk'))->path($assetModel->path) : null;
                 $assetContent = ($assetPath && file_exists($assetPath)) ? file_get_contents($assetPath) : null;
+                
+                \Illuminate\Support\Facades\Log::info('Asset download', [
+                    'key' => $asset['key'] ?? 'unknown',
+                    'url' => $asset['url'] ?? 'unknown',
+                    'path' => $assetPath,
+                    'file_exists' => $assetPath ? file_exists($assetPath) : false,
+                    'content_size' => $assetContent ? strlen($assetContent) : 0,
+                    'content_type' => $asset['contentType'] ?? 'application/octet-stream'
+                ]);
+                
                 if ($assetContent === null) continue;
                 $contentType = $asset['contentType'] ?? 'application/octet-stream';
-                $filename = $asset['key'] ?? 'asset';
+                
+                // Use only the basename for Content-Disposition filename
+                // to avoid client-side path issues
+                $key = $asset['key'] ?? 'asset';
+                $filename = basename($key);
+                
                 $parts[] =
                     "--$boundary\r\n" .
                     "Content-Type: $contentType\r\n" .
-                    "Content-Disposition: attachment; filename=\"$filename\"\r\n\r\n" .
+                    "Content-Disposition: inline; filename=\"$filename\"\r\n" .
+                    "Content-Location: $key\r\n\r\n" .
                     $assetContent . "\r\n";
             }
 

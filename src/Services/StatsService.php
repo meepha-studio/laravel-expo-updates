@@ -17,11 +17,12 @@ class StatsService
      * @param Project $project
      * @param string $platform
      * @param string $runtimeVersion
+     * @param string|null $manifestId
      * @return void
      */
-    public function recordRequest(Project $project, string $platform, string $runtimeVersion): void
+    public function recordRequest(Project $project, string $platform, string $runtimeVersion, ?string $manifestId = null): void
     {
-        $this->incrementStat($project, $platform, $runtimeVersion, 'request');
+        $this->incrementStat($project, $platform, $runtimeVersion, 'request', $manifestId);
     }
 
     /**
@@ -30,11 +31,12 @@ class StatsService
      * @param Project $project
      * @param string $platform
      * @param string $runtimeVersion
+     * @param string|null $manifestId
      * @return void
      */
-    public function recordUpgrade(Project $project, string $platform, string $runtimeVersion): void
+    public function recordUpgrade(Project $project, string $platform, string $runtimeVersion, ?string $manifestId = null): void
     {
-        $this->incrementStat($project, $platform, $runtimeVersion, 'upgrade');
+        $this->incrementStat($project, $platform, $runtimeVersion, 'upgrade', $manifestId);
     }
 
     /**
@@ -120,23 +122,37 @@ class StatsService
      * @param string $platform
      * @param string $runtimeVersion
      * @param string $type
+     * @param string|null $manifestId
      * @return void
      */
-    protected function incrementStat(Project $project, string $platform, string $runtimeVersion, string $type): void
+    protected function incrementStat(Project $project, string $platform, string $runtimeVersion, string $type, ?string $manifestId = null): void
     {
         $date = now()->startOfDay();
 
-        $stat = UpdateStat::firstOrCreate(
-            [
-                'project_id' => $project->id,
-                'platform' => $platform,
-                'runtime_version' => $runtimeVersion,
-                'type' => $type,
-                'date' => $date,
-            ],
-            ['count' => 0]
-        );
+        $attributes = [
+            'project_id' => $project->id,
+            'platform' => $platform,
+            'runtime_version' => $runtimeVersion,
+            'type' => $type,
+            'date' => $date,
+        ];
 
-        $stat->increment('count');
+        // Add manifest_id if provided
+        if ($manifestId) {
+            $attributes['manifest_id'] = $manifestId;
+        }
+
+        // Use DB::table()->upsert() for atomic operation to avoid race conditions
+        DB::table('expo_update_stats')->upsert(
+            array_merge($attributes, [
+                'count' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]),
+            // Unique columns (matching expo_stats_unique_index)
+            array_keys($attributes),
+            // Update these columns on duplicate
+            ['count' => DB::raw('count + 1'), 'updated_at' => now()]
+        );
     }
 } 

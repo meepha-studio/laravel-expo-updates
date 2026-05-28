@@ -46,10 +46,31 @@ class TrackUpdateRequests
                 $platform = $request->header('expo-platform');
                 $runtimeVersion = $request->header('expo-runtime-version');
                 
+                // Extract manifest ID from response
+                $manifestId = null;
+                if ($response->getStatusCode() === 200) {
+                    $contentType = $response->headers->get('Content-Type', '');
+                    $content = $response->getContent();
+                    
+                    // For multipart/mixed responses, extract JSON part
+                    if (str_contains($contentType, 'multipart/mixed')) {
+                        // Find the manifest ID in the JSON after expo-signature header
+                        // Look for: expo-signature, blank line, then {"id":"...
+                        if (preg_match('/expo-signature:[^\r\n]*\r?\n\r?\n\{"id":"([a-f0-9\-]+)"/i', $content, $matches)) {
+                            $manifestId = $matches[1];
+                        }
+                    } else {
+                        // For JSON responses
+                        $manifestData = json_decode($content, true);
+                        $manifestId = $manifestData['id'] ?? null;
+                    }
+                }
+                
                 $this->statsService->recordRequest(
                     $project,
                     $platform,
-                    $runtimeVersion
+                    $runtimeVersion,
+                    $manifestId
                 );
             }
         }

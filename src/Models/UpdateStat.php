@@ -24,6 +24,7 @@ class UpdateStat extends Model implements UpdateStatInterface
      */
     protected $fillable = [
         'project_id',
+        'manifest_id',
         'platform',
         'runtime_version',
         'type',
@@ -47,6 +48,14 @@ class UpdateStat extends Model implements UpdateStatInterface
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
+    }
+
+    /**
+     * Get the manifest that owns the stat.
+     */
+    public function manifest(): BelongsTo
+    {
+        return $this->belongsTo(Manifest::class);
     }
 
     public function getPlatform(): string

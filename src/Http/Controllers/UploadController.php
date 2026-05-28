@@ -126,17 +126,51 @@ class UploadController extends Controller
             new \RecursiveDirectoryIterator($platformPath),
             \RecursiveIteratorIterator::LEAVES_ONLY
         );
+        
+        $launchAssetFound = false;
+        $platform = $manifest->platform; // Get the manifest platform
+        
+        // Files to exclude (metadata, not actual assets)
+        $excludedFiles = ['metadata.json', 'expoconfig.json', '.expo-internal'];
+        
         foreach ($files as $file) {
             if ($file->isDir()) {
                 continue;
             }
 
             $relativePath = substr($file->getPathname(), strlen($platformPath) + 1);
+            $filename = $file->getFilename();
+            
+            // Skip metadata files
+            if (in_array($filename, $excludedFiles) || str_starts_with($filename, '.')) {
+                continue;
+            }
+            
             $content = file_get_contents($file->getPathname());
-            $contentType = mime_content_type($file->getPathname());
             $fileExtension = pathinfo($file->getFilename(), PATHINFO_EXTENSION);
+            
+            // Detect platform-specific launch bundle
+            // Modern Expo: _expo/static/js/{platform}/index-{hash}.hbc (must match manifest platform)
+            // Legacy: index.bundle
+            // Note: relativePath includes extension, but stored key won't
+            $isLaunchAsset = ($relativePath === 'index.bundle') || 
+                             preg_match("#^_expo/static/js/{$platform}/index-[a-f0-9]+\.(hbc|js)$#", $relativePath);
+            
+            // Determine correct Content-Type
+            // Launch asset (.hbc or .js bundle) should be application/javascript
+            // Other assets use mime type detection
+            if ($isLaunchAsset) {
+                $contentType = 'application/javascript';
+            } elseif ($fileExtension === 'hbc') {
+                // Non-launch .hbc files are octet-stream
+                $contentType = 'application/octet-stream';
+            } else {
+                $contentType = mime_content_type($file->getPathname()) ?: 'application/octet-stream';
+            }
 
             // Pass Manifest instance to storeAsset for manifest-isolated storage
+            // storeAsset will normalize the key (remove extension) and store extension separately
+            // It also saves the asset directly in the database with the correct manifest_id
             $asset = $this->assetService->storeAsset(
                 $manifest,
                 $relativePath,
@@ -145,14 +179,14 @@ class UploadController extends Controller
                 $fileExtension
             );
 
-            if ($asset) {
-                if ($relativePath === 'index.bundle') {
-                    $manifest->launch_asset_id = $asset->id;
-                    $manifest->save();
-                } else {
-                    $manifest->assets()->save($asset);
-                }
+            // Set as launch asset if this is the main bundle
+            if ($asset && $isLaunchAsset && !$launchAssetFound) {
+                $manifest->launch_asset_id = $asset->id;
+                $manifest->save();
+                $launchAssetFound = true;
             }
+            // Note: All assets (including launch) are already saved by storeAsset()
+            // No need to call $manifest->assets()->save() as it would duplicate
         }
     }
 

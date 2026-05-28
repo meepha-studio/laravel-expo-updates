@@ -73,9 +73,11 @@ class ManifestService
             'createdAt' => $manifest->created_at->toISOString(),
             'runtimeVersion' => $manifest->runtime_version,
             'launchAsset' => $this->formatAsset($manifest->launchAsset),
-            'assets' => $manifest->assets->map(
-                fn ($asset) => $this->formatAsset($asset)
-            )->toArray(),
+            'assets' => $manifest->assets
+                ->filter(fn ($asset) => $asset->id !== $manifest->launch_asset_id) // Exclude launch asset from assets array
+                ->map(fn ($asset) => $this->formatAsset($asset))
+                ->values() // Re-index array after filter
+                ->toArray(),
             'metadata' => $manifest->metadata,
             'extra' => $extra,
         ];
@@ -165,7 +167,8 @@ class ManifestService
             $formatted['hash'] = rtrim($base64UrlHash, '=');
         }
 
-        // Always include fileExtension (required by iOS client)
+        // ALWAYS include fileExtension (iOS client requires it, crashes if null)
+        // Use empty string if extension is already in the key
         $formatted['fileExtension'] = $asset->file_extension ?? '';
 
         return $formatted;
