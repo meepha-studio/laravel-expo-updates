@@ -239,6 +239,67 @@ To enable code signing:
    EXPO_UPDATES_PRIVATE_KEY_PATH=/path/to/private.key
    ```
 
+#### Generating Code Signing Keys
+
+You can generate your code signing keys using the official Expo package:
+
+```bash
+npm install @expo/code-signing-certificates
+```
+
+Create a script `generate-keys.js`:
+
+```javascript
+const {
+  generateKeyPair,
+  convertKeyPairToPEM,
+  generateSelfSignedCodeSigningCertificate,
+  convertCertificateToCertificatePEM,
+} = require('@expo/code-signing-certificates');
+const fs = require('fs');
+
+// 1. Generate key pair
+const keyPair = generateKeyPair();
+
+// 2. Set validity period (10 years)
+const validityNotBefore = new Date();
+const validityNotAfter = new Date();
+validityNotAfter.setFullYear(validityNotAfter.getFullYear() + 10);
+
+// 3. Create self-signed certificate
+const certificate = generateSelfSignedCodeSigningCertificate({
+  keyPair,
+  validityNotBefore,
+  validityNotAfter,
+  commonName: 'Your App Name',
+});
+
+// 4. Convert to PEM format
+const keyPairPEM = convertKeyPairToPEM(keyPair);
+const certificatePEM = convertCertificateToCertificatePEM(certificate);
+
+// 5. Save files
+fs.writeFileSync('./ota-private.pem', keyPairPEM.privateKeyPEM);
+fs.writeFileSync('./ota-public.pem', keyPairPEM.publicKeyPEM);
+fs.writeFileSync('./ota-certificate.pem', certificatePEM);
+
+console.log('✅ Keys generated successfully!');
+console.log('- Private key: ./ota-private.pem (keep this SECRET on your server)');
+console.log('- Public key: ./ota-public.pem');
+console.log('- Certificate: ./ota-certificate.pem (add this to your mobile app)');
+```
+
+Run the script:
+
+```bash
+node generate-keys.js
+```
+
+**Important:**
+- Keep `ota-private.pem` **secret** and secure on your Laravel server
+- Add `ota-certificate.pem` to your React Native/Expo app (configure in `app.json`)
+- Never commit private keys to version control (add to `.gitignore`)
+
 ### Asset Storage
 
 Assets are stored using Laravel's storage system. By default, they are stored in the `public` disk under the
