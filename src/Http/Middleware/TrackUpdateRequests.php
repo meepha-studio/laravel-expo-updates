@@ -42,10 +42,14 @@ class TrackUpdateRequests
                 : Project::find($request->header('expo-project-id'));
 
             if ($project) {
+                // Get platform and runtime version from headers (Expo protocol)
+                $platform = $request->header('expo-platform');
+                $runtimeVersion = $request->header('expo-runtime-version');
+                
                 $this->statsService->recordRequest(
                     $project,
-                    $request->query('platform'),
-                    $request->query('runtimeVersion')
+                    $platform,
+                    $runtimeVersion
                 );
             }
         }
