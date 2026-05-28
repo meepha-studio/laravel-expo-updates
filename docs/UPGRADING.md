@@ -41,9 +41,27 @@ php artisan migrate
 ```
 
 **What it does:**
+- Updates unique constraint from `project_id+key` to `manifest_id+key`
 - Copies each asset from old path to `updates/{manifest_uuid}/{filename}`
 - Updates database `path` and `url` columns
 - Leaves original files intact (manual cleanup recommended after verification)
+
+### Step 3.1: Fix Unique Constraint (If Migration Fails)
+
+If the migration fails with a MySQL constraint error like:
+```
+Cannot drop index 'expo_assets_project_id_key_unique': needed in a foreign key constraint
+```
+
+Or if you get "Duplicate entry" errors when deploying, run:
+```bash
+php artisan expo:fix-unique-constraint
+```
+
+This command will:
+- Create a regular index on `project_id` for the foreign key
+- Remove the old unique constraint that prevents manifest isolation
+- Ensure the new `manifest_id+key` unique constraint is in place
 
 ### Step 4: Verify Migration
 Check a few assets manually:
@@ -114,6 +132,38 @@ If migration stops with errors:
 1. Check storage disk permissions: `storage/app/updates/` must be writable
 2. Run migration with verbose output: `php artisan migrate --verbose`
 3. Check Laravel logs: `storage/logs/laravel.log`
+
+### Duplicate Entry Error on Upload
+
+If you get this error when deploying OTA updates:
+```
+SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry 
+'xxx-index.html' for key 'expo_assets_project_id_key_unique'
+```
+
+This means the old unique constraint wasn't properly removed. Fix it with:
+```bash
+php artisan expo:fix-unique-constraint
+```
+
+Or manually run the SQL script:
+```bash
+mysql -u [user] -p [database] < vendor/meepha-studio/laravel-expo-updates/database/fix_unique_constraint.sql
+```
+
+### Manual Constraint Fix
+
+If the artisan command doesn't work, run these SQL commands directly:
+```sql
+-- Add regular index for FK
+CREATE INDEX expo_assets_project_id_index ON expo_assets(project_id);
+
+-- Drop old unique constraint
+ALTER TABLE expo_assets DROP INDEX expo_assets_project_id_key_unique;
+
+-- Verify new unique constraint exists
+SHOW INDEX FROM expo_assets WHERE Key_name = 'expo_assets_manifest_id_key_unique';
+```
 
 ## Rollback (Not Recommended)
 
