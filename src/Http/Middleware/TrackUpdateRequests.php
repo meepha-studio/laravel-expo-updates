@@ -54,10 +54,11 @@ class TrackUpdateRequests
                     
                     // For multipart/mixed responses, extract JSON part
                     if (str_contains($contentType, 'multipart/mixed')) {
-                        // Find the manifest ID in the JSON after expo-signature header
-                        // Look for: expo-signature, blank line, then {"id":"...
-                        if (preg_match('/expo-signature:[^\r\n]*\r?\n\r?\n\{"id":"([a-f0-9\-]+)"/i', $content, $matches)) {
-                            $manifestId = $matches[1];
+                        // Find the manifest ID in the JSON
+                        // Pattern 1: With signature: expo-signature, blank line, then {"id":"...
+                        // Pattern 2: Without signature: headers end with blank line, then {"id":"...
+                        if (preg_match('/\r?\n\r?\n(\{"id":"([a-f0-9\-]+)")/i', $content, $matches)) {
+                            $manifestId = $matches[2];
                         }
                     } else {
                         // For JSON responses
