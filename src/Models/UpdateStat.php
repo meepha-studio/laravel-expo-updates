@@ -3,17 +3,19 @@
 namespace LaravelExpoUpdates\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use LaravelExpoUpdates\Contracts\UpdateStatInterface;
+use LaravelExpoUpdates\Tests\Factories\UpdateStatFactory;
 
 /**
  * Model for tracking update statistics.
  */
 class UpdateStat extends Model implements UpdateStatInterface
 {
+    use HasFactory;
+
     protected $table = 'expo_update_stats';
-    public $incrementing = false;
-    protected $keyType = 'string';
 
     /**
      * The attributes that are mass assignable.
@@ -70,5 +72,10 @@ class UpdateStat extends Model implements UpdateStatInterface
     public function getDate(): \DateTimeInterface
     {
         return $this->date;
+    }
+
+    protected static function newFactory()
+    {
+        return UpdateStatFactory::new();
     }
 } 

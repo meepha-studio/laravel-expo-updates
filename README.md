@@ -30,6 +30,11 @@ this package lets you keep everything in one stack.
 * **Self-hosted**: Own your release cadence, storage, and logs.
 * **Full control**: Gate who gets which updates and when.
 
+## Documentation
+
+- **[Upgrading Guide](docs/UPGRADING.md)** - Migration steps for upgrading to immutable manifest architecture
+- **[Manifest Management](docs/MANIFEST_MANAGEMENT.md)** - How to query, display, and manage manifests in your Laravel app
+
 ## Reporting Bugs
 
 Spotted a bug? Thanks for helping improve Laravel Expo Updates!

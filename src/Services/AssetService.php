@@ -59,12 +59,26 @@ class AssetService
      */
     public function storeAsset($project, string $key, string $content, string $contentType, ?string $fileExtension = null): Asset
     {
-        $project = $this->resolveProject($project);
-        if (!$project) {
-            throw new \InvalidArgumentException('Invalid project');
+        // Accept Manifest instance (preferred) or manifest UUID string for backward compatibility
+        $manifest_id = null;
+        if ($project instanceof \LaravelExpoUpdates\Models\Manifest) {
+            $manifest_id = $project->id;
+            $project_id = $project->project_id;
+        } elseif ($project instanceof \LaravelExpoUpdates\Models\Project) {
+            throw new \InvalidArgumentException('storeAsset doit être appelé avec le Manifest, pas le Project');
+        } elseif (is_string($project)) {
+            $manifest_id = $project;
+            $project_id = null;
+        } else {
+            throw new \InvalidArgumentException('Invalid $project parameter - must be Manifest instance or UUID string');
         }
 
-        $path = config('expo-updates.assets.path') . '/' . $project->slug . '/' . $key;
+        $manifest = \LaravelExpoUpdates\Models\Manifest::findOrFail($manifest_id);
+        $project_id = $manifest->project_id;
+
+        // Isolated path per manifest: updates/{manifest_uuid}/{key}
+        $basePath = 'updates/' . $manifest_id;
+        $path = $basePath . '/' . $key;
         if ($fileExtension) {
             $path .= '.' . ltrim($fileExtension, '.');
         }
@@ -72,20 +86,19 @@ class AssetService
         // Store the file
         Storage::disk(config('expo-updates.assets.disk'))->put($path, $content);
 
-        // Create or update the asset record
-        return Asset::updateOrCreate(
-            [
-                'project_id' => $project->id,
-                'key' => $key,
-            ],
-            [
-                'content_type' => $contentType,
-                'file_extension' => $fileExtension,
-                'path' => $path,
-                'hash' => base64_encode(hash('sha256', $content, true)),
-                'url' => Storage::disk(config('expo-updates.assets.disk'))->url($path),
-            ]
-        );
+        // Immutable creation - always INSERT, never UPDATE
+        $asset = new \LaravelExpoUpdates\Models\Asset();
+        $asset->manifest_id = $manifest_id;
+        $asset->project_id = $project_id;
+        $asset->key = $key;
+        $asset->content_type = $contentType;
+        $asset->file_extension = $fileExtension;
+        $asset->path = $path;
+        $asset->hash = base64_encode(hash('sha256', $content, true));
+        $asset->url = Storage::disk(config('expo-updates.assets.disk'))->url($path);
+        $asset->save();
+
+        return $asset;
     }
 
     /**
@@ -102,4 +115,4 @@ class AssetService
 
         return Project::where('slug', $project)->first();
     }
-} 
+}

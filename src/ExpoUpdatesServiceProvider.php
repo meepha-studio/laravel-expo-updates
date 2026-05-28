@@ -80,13 +80,15 @@ class ExpoUpdatesServiceProvider extends ServiceProvider
         // Project-specific routes
         $this->app['router']->group(['prefix' => $prefix.'/{projectSlug}', 'middleware' => ['expo.validate', 'expo.track']], function ($router) {
             $router->get('manifest', [ExpoUpdatesController::class, 'manifest']);
-            $router->get('asset/{assetKey}', [ExpoUpdatesController::class, 'asset']);
+            $router->get('asset/{key}', [ExpoUpdatesController::class, 'asset']);
+            $router->post('upload', [UploadController::class, 'upload'])
+                ->middleware('expo.upload-auth');
         });
 
         // Default routes (will use project from header or config)
         $this->app['router']->group(['prefix' => $prefix, 'middleware' => ['expo.validate', 'expo.track']], function ($router) {
             $router->get('manifest', [ExpoUpdatesController::class, 'manifest']);
-            $router->get('asset/{assetKey}', [ExpoUpdatesController::class, 'asset']);
+            $router->get('asset/{key}', [ExpoUpdatesController::class, 'asset']);
             $router->post('upload', [UploadController::class, 'upload'])
                 ->middleware('expo.upload-auth');
         });

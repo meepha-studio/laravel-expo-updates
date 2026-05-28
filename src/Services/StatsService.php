@@ -124,17 +124,19 @@ class StatsService
      */
     protected function incrementStat(Project $project, string $platform, string $runtimeVersion, string $type): void
     {
-        UpdateStat::updateOrCreate(
+        $date = now()->startOfDay();
+
+        $stat = UpdateStat::firstOrCreate(
             [
                 'project_id' => $project->id,
                 'platform' => $platform,
                 'runtime_version' => $runtimeVersion,
                 'type' => $type,
-                'date' => now()->toDateString(),
+                'date' => $date,
             ],
-            [
-                'count' => DB::raw('count + 1'),
-            ]
+            ['count' => 0]
         );
+
+        $stat->increment('count');
     }
 } 
