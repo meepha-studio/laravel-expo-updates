@@ -15,6 +15,7 @@ use LaravelExpoUpdates\Http\Middleware\ValidateExpoRequest;
 use LaravelExpoUpdates\Services\AssetService;
 use LaravelExpoUpdates\Services\ManifestService;
 use LaravelExpoUpdates\Services\StatsService;
+use LaravelExpoUpdates\Console\Commands\FixUniqueConstraint;
 
 /**
  * Service provider for the Laravel Expo Updates package.
@@ -70,6 +71,13 @@ class ExpoUpdatesServiceProvider extends ServiceProvider
         ], 'config');
 
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+
+        // Register commands
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                FixUniqueConstraint::class,
+            ]);
+        }
 
         $this->app['router']->aliasMiddleware('expo.validate', ValidateExpoRequest::class);
         $this->app['router']->aliasMiddleware('expo.track', TrackUpdateRequests::class);

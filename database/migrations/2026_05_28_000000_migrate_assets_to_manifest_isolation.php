@@ -17,30 +17,37 @@ return new class extends Migration
     public function up()
     {
         // Step 1: Update unique constraint from project_id+key to manifest_id+key
-        // For MySQL, we need to be careful with foreign key constraints
+        // The old unique index prevents the same key from being used across different manifests
+        // We need to remove it to allow manifest isolation
+        
         $driver = DB::getDriverName();
         
         if ($driver === 'mysql') {
-            // MySQL: First create the new index, then try to drop the old one
+            // First, ensure there's a regular index on project_id for the foreign key
+            try {
+                DB::statement('ALTER TABLE expo_assets ADD INDEX expo_assets_project_id_index (project_id)');
+            } catch (\Exception $e) {
+                // Index might already exist
+            }
+            
+            // Now we can safely drop the unique constraint
+            try {
+                DB::statement('ALTER TABLE expo_assets DROP INDEX expo_assets_project_id_key_unique');
+            } catch (\Exception $e) {
+                // If still fails, log but continue - the new unique index is what matters
+                \Log::warning('Could not drop old unique index expo_assets_project_id_key_unique: ' . $e->getMessage());
+            }
+            
             // Create new unique index on manifest_id+key
             try {
                 DB::statement('ALTER TABLE expo_assets ADD UNIQUE INDEX expo_assets_manifest_id_key_unique (manifest_id, `key`)');
             } catch (\Exception $e) {
-                // Index might already exist, continue
-            }
-            
-            // Try to drop old index - if it fails due to FK constraint, it's okay
-            // The new index will be used going forward
-            try {
-                DB::statement('ALTER TABLE expo_assets DROP INDEX expo_assets_project_id_key_unique');
-            } catch (\Exception $e) {
-                // Cannot drop due to foreign key constraint - this is okay
-                // Both indexes can coexist, the new one will be used for manifest isolation
+                // Index might already exist
             }
         } else {
             // Other databases: Use Schema builder
             Schema::table('expo_assets', function (Blueprint $table) {
-                $table->unique(['manifest_id', 'key']);
+                $table->index('project_id');
             });
             
             try {
@@ -48,8 +55,12 @@ return new class extends Migration
                     $table->dropUnique(['project_id', 'key']);
                 });
             } catch (\Exception $e) {
-                // Cannot drop - both indexes will coexist
+                \Log::warning('Could not drop old unique index: ' . $e->getMessage());
             }
+            
+            Schema::table('expo_assets', function (Blueprint $table) {
+                $table->unique(['manifest_id', 'key']);
+            });
         }
 
         // Step 2: Get all existing assets with their manifests
